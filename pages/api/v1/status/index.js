@@ -1,5 +1,4 @@
 import database from "infra/database.js";
-import Server from "next/dist/server/base-server";
 
 async function status(request, response) {
   const updatedAt = new Date().toISOString();
