@@ -26,6 +26,33 @@ async function findOneByUserId(userId) {
   }
 }
 
+async function findValidTokenById(tokenId) {
+  const validToken = await runInsertQuery(tokenId);
+  return validToken;
+
+  async function runInsertQuery(tokenId) {
+    const results = await database.query({
+      text: `
+        SELECT
+          *
+        FROM
+          user_activation_tokens
+        WHERE
+          id = $1
+          AND
+          expires_at > NOW()
+          AND
+          used_at IS NULL
+        LIMIT 
+          1
+      ;`,
+      values: [tokenId],
+    });
+
+    return results.rows[0];
+  }
+}
+
 async function create(userId) {
   const expiresAt = new Date(Date.now() + EXPIRATION_IN_MILLISECONDS);
 
@@ -66,6 +93,7 @@ const activation = {
   sendEmailToUser,
   create,
   findOneByUserId,
+  findValidTokenById,
 };
 
 export default activation;

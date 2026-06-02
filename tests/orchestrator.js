@@ -87,6 +87,11 @@ async function getLastEmail() {
   return lastEmailItem;
 }
 
+async function extractuuid(text) {
+  const match = text.match(/\/cadastro\/ativar\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
+
 const orchestrator = {
   waitForAllServices,
   clearDatabase,
@@ -95,6 +100,7 @@ const orchestrator = {
   createSession,
   deleteAllEmails,
   getLastEmail,
+  extractuuid,
 };
 
 export default orchestrator;
