@@ -16,7 +16,10 @@ describe("GET /api/v1/user", () => {
         username: "UserWithValidSession",
       });
 
+      const activatedUser = await orchestrator.activateUser(creatorUser.id);
+
       const sessionObject = await orchestrator.createSession(creatorUser.id);
+
       const response = await fetch("http://localhost:3000/api/v1/user", {
         headers: {
           Cookie: `session_id=${sessionObject.token}`,
@@ -37,9 +40,9 @@ describe("GET /api/v1/user", () => {
         username: "UserWithValidSession",
         email: creatorUser.email,
         password: creatorUser.password,
-        features: ["read:activation_token"],
+        features: ["create:session", "read:session"],
         created_at: creatorUser.created_at.toISOString(),
-        updated_at: creatorUser.updated_at.toISOString(),
+        updated_at: activatedUser.updated_at.toISOString(),
       });
 
       expect(uuidVersion(responseBody.id)).toBe(4);
@@ -157,6 +160,8 @@ describe("GET /api/v1/user", () => {
         username: "UserWithHalfLifeSession",
       });
 
+      const activatedUser = await orchestrator.activateUser(creatorUser.id);
+
       const sessionObject = await orchestrator.createSession(creatorUser.id);
 
       jest.useRealTimers();
@@ -176,9 +181,9 @@ describe("GET /api/v1/user", () => {
         username: "UserWithHalfLifeSession",
         email: creatorUser.email,
         password: creatorUser.password,
-        features: ["read:activation_token"],
+        features: ["create:session", "read:session"],
         created_at: creatorUser.created_at.toISOString(),
-        updated_at: creatorUser.updated_at.toISOString(),
+        updated_at: activatedUser.updated_at.toISOString(),
       });
 
       expect(uuidVersion(responseBody.id)).toBe(4);
@@ -206,6 +211,23 @@ describe("GET /api/v1/user", () => {
         maxAge: session.EXPIRATION_IN_MILLISECONDS / 1000,
         path: "/",
         httpOnly: true,
+      });
+    });
+  });
+
+  describe("Anonymous user", () => {
+    test("Retrieving the endpoint", async () => {
+      const response = await fetch("http://localhost:3000/api/v1/user");
+
+      expect(response.status).toBe(403);
+
+      const responseBody = await response.json();
+
+      expect(responseBody).toEqual({
+        name: "ForbiddenError",
+        message: "Voçe não possui permissão para executar esta ação.",
+        action: 'Verifique se o seu usuário possui a feature "read:session"',
+        status_code: 403,
       });
     });
   });
