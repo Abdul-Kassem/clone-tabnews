@@ -11,13 +11,9 @@ describe("GET /api/v1/status", () => {
       expect(response.status).toBe(200);
 
       const responseBody = await response.json();
-      expect(responseBody.updated_at).toBeDefined();
 
       const parsedUpdateAt = new Date(responseBody.updated_at).toISOString();
       expect(responseBody.updated_at).toEqual(parsedUpdateAt);
-
-      expect(typeof responseBody.dependencies.database.version).toBe("string");
-      expect(responseBody.dependencies.database.version).toEqual("16.13");
 
       expect(typeof responseBody.dependencies.database.max_connections).toBe(
         "number",
@@ -30,6 +26,41 @@ describe("GET /api/v1/status", () => {
         "number",
       );
       expect(responseBody.dependencies.database.opened_connections).toEqual(1);
+      expect(responseBody.dependencies.database).not.toHaveProperty("version");
+    });
+  });
+
+  describe("Privileged user", () => {
+    test("With `read:status:all`", async () => {
+      const privilegedUser = await orchestrator.createUser({});
+      const activateUser = await orchestrator.activateUser(privilegedUser.id);
+      await orchestrator.addFeaturesToUser(activateUser, ["read:status:all"]);
+      const sessionObject = await orchestrator.createSession(activateUser.id);
+
+      const response = await fetch("http://localhost:3000/api/v1/status", {
+        headers: {
+          Cookie: `session_id=${sessionObject.token}`,
+        },
+      });
+      expect(response.status).toBe(200);
+
+      const responseBody = await response.json();
+
+      const parsedUpdateAt = new Date(responseBody.updated_at).toISOString();
+      expect(responseBody.updated_at).toEqual(parsedUpdateAt);
+
+      expect(typeof responseBody.dependencies.database.max_connections).toBe(
+        "number",
+      );
+      expect(
+        responseBody.dependencies.database.max_connections,
+      ).toBeGreaterThan(0);
+
+      expect(typeof responseBody.dependencies.database.opened_connections).toBe(
+        "number",
+      );
+      expect(responseBody.dependencies.database.opened_connections).toEqual(1);
+      expect(responseBody.dependencies.database.version).toEqual("16.13");
     });
   });
 });
