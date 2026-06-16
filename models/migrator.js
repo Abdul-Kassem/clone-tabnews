@@ -34,7 +34,6 @@ async function runPendingMigrations() {
       dbClient: dbClient,
       dryRun: false,
     });
-
     return migratedMigrations;
   } finally {
     await dbClient?.end();
