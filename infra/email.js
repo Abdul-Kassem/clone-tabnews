@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { servicesError } from "./errors.js";
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_SMTP_HOST,
@@ -11,7 +12,16 @@ const transporter = nodemailer.createTransport({
 });
 
 async function send(mailOpstions) {
-  await transporter.sendMail(mailOpstions);
+  try {
+    await transporter.sendMail(mailOpstions);
+  } catch (error) {
+    throw new servicesError({
+      message: "Não foi possível enviar o email.",
+      action: "Verifique se o serviço de email está disponível.",
+      cause: error,
+      context: mailOpstions,
+    });
+  }
 }
 
 const email = {
