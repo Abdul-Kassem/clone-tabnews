@@ -2,6 +2,7 @@ import orchestrator from "tests/orchestrator.js";
 import { version as uuidVersion } from "uuid";
 import setCookieParser from "set-cookie-parser";
 import session from "models/session.js";
+import webserver from "infra/webserver.js";
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -15,7 +16,7 @@ describe("DELETE /api/v1/user", () => {
       const nonexistentToken =
         "0135b5224e3f4a27b2f33f6df2cfe5394fbe2b5e1113fb46bca82af564e102eb4ee09643dc51b8f501c3f1c554132f92";
 
-      const response = await fetch("http://localhost:3000/api/v1/sessions", {
+      const response = await fetch(`${webserver.origin}/api/v1/sessions`, {
         method: "DELETE",
         headers: {
           Cookie: `session_id=${nonexistentToken}`,
@@ -41,11 +42,11 @@ describe("DELETE /api/v1/user", () => {
 
       const creatorUser = await orchestrator.createUser({});
 
-      const sessionObject = await orchestrator.createSession(creatorUser.id);
+      const sessionObject = await orchestrator.createSession(creatorUser);
 
       jest.useRealTimers();
 
-      const response = await fetch("http://localhost:3000/api/v1/sessions", {
+      const response = await fetch(`${webserver.origin}/api/v1/sessions`, {
         method: "DELETE",
         headers: {
           Cookie: `session_id=${sessionObject.token}`,
@@ -67,8 +68,8 @@ describe("DELETE /api/v1/user", () => {
     test("With valid session", async () => {
       const creatorUser = await orchestrator.createUser({});
 
-      const sessionObject = await orchestrator.createSession(creatorUser.id);
-      const response = await fetch("http://localhost:3000/api/v1/sessions", {
+      const sessionObject = await orchestrator.createSession(creatorUser);
+      const response = await fetch(`${webserver.origin}/api/v1/sessions`, {
         method: "DELETE",
         headers: {
           Cookie: `session_id=${sessionObject.token}`,
@@ -111,6 +112,27 @@ describe("DELETE /api/v1/user", () => {
         maxAge: -1,
         path: "/",
         httpOnly: true,
+      });
+
+      // Double check assertions
+      const doubleCheckResponse = await fetch(
+        `${webserver.origin}/api/v1/user`,
+        {
+          headers: {
+            Cookie: `session_id=${sessionObject.token}`,
+          },
+        },
+      );
+
+      expect(doubleCheckResponse.status).toBe(401);
+
+      const doubleCheckResponseBody = await doubleCheckResponse.json();
+
+      expect(doubleCheckResponseBody).toEqual({
+        name: "UnauthorizedError",
+        message: "Usuário não possui sessão ativa.",
+        action: "Verifique se este usuário está logado e tente novamente.",
+        status_code: 401,
       });
     });
   });
